@@ -79,7 +79,7 @@ http://127.0.0.1:5000
 ```
 ipl-analytics-dashboard/
 │
-├── project.py          # Backend data processing & API calculation logic
+├── analytics.py        # Backend data processing & API calculation logic
 ├── server.py           # Flask REST API server & static file host
 ├── index.html          # Responsive single-page dashboard UI (Tailwind CSS)
 ├── app.js              # Frontend API client, Chart.js & state management

@@ -1,7 +1,8 @@
 import os
 import pandas as pd
 from flask import Flask, jsonify, request, send_from_directory
-from project import (
+from analytics import (
+    VENUE_MAP,
     get_all_seasons_api,
     get_suggestions_api,
     get_batter_analysis_api,
@@ -24,6 +25,7 @@ for _p in ["IPL.csv.gz", "ipl.csv.gz", "IPL.csv", "ipl.csv"]:
 
 print(f"Loading IPL dataset from {DATASET_PATH}...")
 df = pd.read_csv(DATASET_PATH, low_memory=False)
+df["venue_clean"] = df["venue"].map(lambda v: VENUE_MAP.get(str(v), str(v)))
 print("IPL Dataset loaded successfully!")
 
 

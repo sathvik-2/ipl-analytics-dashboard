@@ -15,6 +15,89 @@ if not DATASET_PATH:
 df = pd.read_csv(DATASET_PATH, low_memory=False)
 all_teams = pd.concat([df["batting_team"], df["bowling_team"]]).dropna().unique()
 
+VENUE_MAP = {
+    # Chinnaswamy
+    "M Chinnaswamy Stadium": "M Chinnaswamy Stadium, Bengaluru",
+    "M Chinnaswamy Stadium, Bengaluru": "M Chinnaswamy Stadium, Bengaluru",
+    "M.Chinnaswamy Stadium": "M Chinnaswamy Stadium, Bengaluru",
+
+    # Eden Gardens
+    "Eden Gardens": "Eden Gardens, Kolkata",
+    "Eden Gardens, Kolkata": "Eden Gardens, Kolkata",
+
+    # Wankhede
+    "Wankhede Stadium": "Wankhede Stadium, Mumbai",
+    "Wankhede Stadium, Mumbai": "Wankhede Stadium, Mumbai",
+
+    # Chepauk / MA Chidambaram
+    "MA Chidambaram Stadium": "MA Chidambaram Stadium, Chepauk, Chennai",
+    "MA Chidambaram Stadium, Chepauk": "MA Chidambaram Stadium, Chepauk, Chennai",
+    "MA Chidambaram Stadium, Chepauk, Chennai": "MA Chidambaram Stadium, Chepauk, Chennai",
+
+    # Delhi (Arun Jaitley / Feroz Shah Kotla)
+    "Feroz Shah Kotla": "Arun Jaitley Stadium, Delhi",
+    "Arun Jaitley Stadium": "Arun Jaitley Stadium, Delhi",
+    "Arun Jaitley Stadium, Delhi": "Arun Jaitley Stadium, Delhi",
+
+    # Brabourne
+    "Brabourne Stadium": "Brabourne Stadium, Mumbai",
+    "Brabourne Stadium, Mumbai": "Brabourne Stadium, Mumbai",
+
+    # DY Patil
+    "Dr DY Patil Sports Academy": "Dr DY Patil Sports Academy, Mumbai",
+    "Dr DY Patil Sports Academy, Mumbai": "Dr DY Patil Sports Academy, Mumbai",
+
+    # Vizag
+    "Dr. Y.S. Rajasekhara Reddy ACA-VDCA Cricket Stadium": "ACA-VDCA Cricket Stadium, Visakhapatnam",
+    "Dr. Y.S. Rajasekhara Reddy ACA-VDCA Cricket Stadium, Visakhapatnam": "ACA-VDCA Cricket Stadium, Visakhapatnam",
+
+    # HPCA Dharamsala
+    "Himachal Pradesh Cricket Association Stadium": "HPCA Stadium, Dharamsala",
+    "Himachal Pradesh Cricket Association Stadium, Dharamsala": "HPCA Stadium, Dharamsala",
+
+    # Mohali
+    "Punjab Cricket Association Stadium, Mohali": "PCA IS Bindra Stadium, Mohali",
+    "Punjab Cricket Association IS Bindra Stadium": "PCA IS Bindra Stadium, Mohali",
+    "Punjab Cricket Association IS Bindra Stadium, Mohali": "PCA IS Bindra Stadium, Mohali",
+    "Punjab Cricket Association IS Bindra Stadium, Mohali, Chandigarh": "PCA IS Bindra Stadium, Mohali",
+
+    # Mullanpur
+    "Maharaja Yadavindra Singh International Cricket Stadium, Mullanpur": "Maharaja Yadavindra Singh Stadium, Mullanpur",
+    "Maharaja Yadavindra Singh International Cricket Stadium, New Chandigarh": "Maharaja Yadavindra Singh Stadium, Mullanpur",
+
+    # Pune
+    "Maharashtra Cricket Association Stadium": "MCA Stadium, Pune",
+    "Maharashtra Cricket Association Stadium, Pune": "MCA Stadium, Pune",
+    "Subrata Roy Sahara Stadium": "MCA Stadium, Pune",
+
+    # Rajiv Gandhi (Uppal / Hyderabad)
+    "Rajiv Gandhi International Stadium": "Rajiv Gandhi International Stadium, Hyderabad",
+    "Rajiv Gandhi International Stadium, Uppal": "Rajiv Gandhi International Stadium, Hyderabad",
+    "Rajiv Gandhi International Stadium, Uppal, Hyderabad": "Rajiv Gandhi International Stadium, Hyderabad",
+
+    # Motera / Narendra Modi
+    "Sardar Patel Stadium, Motera": "Narendra Modi Stadium, Ahmedabad",
+    "Narendra Modi Stadium, Ahmedabad": "Narendra Modi Stadium, Ahmedabad",
+
+    # Sawai Mansingh (Jaipur)
+    "Sawai Mansingh Stadium": "Sawai Mansingh Stadium, Jaipur",
+    "Sawai Mansingh Stadium, Jaipur": "Sawai Mansingh Stadium, Jaipur",
+
+    # Raipur
+    "Shaheed Veer Narayan Singh International Stadium": "Shaheed Veer Narayan Singh Stadium, Raipur",
+    "Shaheed Veer Narayan Singh International Stadium, Raipur": "Shaheed Veer Narayan Singh Stadium, Raipur",
+
+    # Abu Dhabi
+    "Sheikh Zayed Stadium": "Zayed Cricket Stadium, Abu Dhabi",
+    "Zayed Cricket Stadium, Abu Dhabi": "Zayed Cricket Stadium, Abu Dhabi",
+
+    # Ekana
+    "Bharat Ratna Shri Atal Bihari Vajpayee Ekana Cricket Stadium, Lucknow": "Ekana Cricket Stadium, Lucknow",
+    "Barsapara Cricket Stadium, Guwahati": "Barsapara Cricket Stadium, Guwahati",
+}
+
+df["venue_clean"] = df["venue"].map(lambda v: VENUE_MAP.get(str(v), str(v)))
+
 TEAM_ALIASES = {
     "rcb": "Royal Challengers Bengaluru",
     "csk": "Chennai Super Kings",
@@ -34,7 +117,7 @@ TEAM_ALIASES = {
 ALL_BATTERS = sorted([str(p) for p in df["batter"].dropna().unique()])
 ALL_BOWLERS = sorted([str(b) for b in df["bowler"].dropna().unique()])
 ALL_TEAMS_LIST = sorted([str(t) for t in all_teams])
-ALL_VENUES = sorted([str(v) for v in df["venue"].dropna().unique()])
+ALL_VENUES = sorted([str(v) for v in df["venue_clean"].dropna().unique()])
 
 # Extracted unique seasons/years from IPL.csv
 ALL_YEARS = sorted([int(y) for y in df["year"].dropna().unique()], reverse=True)
@@ -360,13 +443,26 @@ def get_season_analysis_api(df, season_input):
 
 
 def get_venue_analysis_api(df, search_venue):
-    venues = df["venue"].dropna().unique()
-    result = process.extractOne(search_venue, venues)
-    if not result:
-        return {"error": f"Venue '{search_venue}' not found"}
+    if "venue_clean" not in df.columns and "venue" in df.columns:
+        df["venue_clean"] = df["venue"].map(lambda v: VENUE_MAP.get(str(v), str(v)))
 
-    venue_name = result[0]
-    venue_info = df[df["venue"].str.contains(venue_name, case=False, na=False)]
+    venues = df["venue_clean"].dropna().unique()
+    
+    # 1. Exact match check
+    venue_name = None
+    for v in venues:
+        if v.lower() == search_venue.strip().lower():
+            venue_name = v
+            break
+            
+    # 2. Fuzzy / Substring match
+    if not venue_name:
+        result = process.extractOne(search_venue, venues)
+        if not result:
+            return {"error": f"Venue '{search_venue}' not found"}
+        venue_name = result[0]
+
+    venue_info = df[df["venue_clean"] == venue_name]
 
     matches = int(venue_info["match_id"].nunique())
     
@@ -391,9 +487,6 @@ def get_venue_analysis_api(df, search_venue):
         min_idx = team_scores_df["runs_total"].idxmin()
         min_team_name = team_scores_df.loc[min_idx, "batting_team"]
         min_runs = int(team_scores_df.loc[min_idx, "runs_total"])
-
-    if venue_name == "M Chinnaswamy Stadium":
-        min_runs = 49
 
     average_score = round(float(team_scores_df["runs_total"].mean()), 1)
 
