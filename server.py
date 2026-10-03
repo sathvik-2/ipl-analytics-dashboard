@@ -3,6 +3,7 @@ import pandas as pd
 from flask import Flask, jsonify, request, send_from_directory
 from analytics import (
     VENUE_MAP,
+    _compute_match_winners,
     get_all_seasons_api,
     get_suggestions_api,
     get_batter_analysis_api,
@@ -25,6 +26,8 @@ for _p in ["IPL.csv.gz", "ipl.csv.gz", "IPL.csv", "ipl.csv"]:
 
 print(f"Loading IPL dataset from {DATASET_PATH}...")
 df = pd.read_csv(DATASET_PATH, low_memory=False)
+_match_map, _, _ = _compute_match_winners(df)
+df["match_won_by"] = df["match_id"].map(_match_map).fillna(df["match_won_by"])
 df["venue_clean"] = df["venue"].map(lambda v: VENUE_MAP.get(str(v), str(v)))
 print("IPL Dataset loaded successfully!")
 

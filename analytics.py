@@ -13,6 +13,35 @@ if not DATASET_PATH:
     raise FileNotFoundError("IPL dataset file (IPL.csv.gz or IPL.csv) not found!")
 
 df = pd.read_csv(DATASET_PATH, low_memory=False)
+
+def _compute_match_winners(data_frame):
+    match_winners = {}
+    outright_winners = {}
+    tied_matches = set()
+    for mid, group in data_frame.groupby("match_id"):
+        inns = group.groupby(["innings", "batting_team"])["runs_total"].sum().reset_index()
+        inn1 = inns[inns["innings"] == 1]
+        inn2 = inns[inns["innings"] == 2]
+        if len(inn1) > 0 and len(inn2) > 0:
+            t1, r1 = inn1["batting_team"].values[0], inn1["runs_total"].values[0]
+            t2, r2 = inn2["batting_team"].values[0], inn2["runs_total"].values[0]
+            if r1 > r2:
+                outright_winners[mid] = t1
+                match_winners[mid] = t1
+            elif r2 > r1:
+                outright_winners[mid] = t2
+                match_winners[mid] = t2
+            else:
+                tied_matches.add(mid)
+                match_winners[mid] = "Tie / No Result"
+        else:
+            tied_matches.add(mid)
+            match_winners[mid] = "Tie / No Result"
+    return match_winners, outright_winners, tied_matches
+
+_MATCH_WINNER_MAP, _OUTRIGHT_WINNERS, _TIED_MATCHES = _compute_match_winners(df)
+df["match_won_by"] = df["match_id"].map(_MATCH_WINNER_MAP).fillna(df["match_won_by"])
+
 all_teams = pd.concat([df["batting_team"], df["bowling_team"]]).dropna().unique()
 
 VENUE_MAP = {
@@ -332,9 +361,12 @@ def get_team_analysis_api(df, team_input):
     bowling_matches = bowling_info["match_id"].unique()
     matches_played = len(set(batting_matches) | set(bowling_matches))
 
-    match_df = df.drop_duplicates("match_id")
-    wins = int((match_df["match_won_by"] == team).sum())
-    loss = matches_played - wins
+    team_m_ids = set(batting_matches) | set(bowling_matches)
+    matches_played = len(team_m_ids)
+
+    wins = sum(1 for m_id in team_m_ids if _OUTRIGHT_WINNERS.get(m_id) == team)
+    ties = sum(1 for m_id in team_m_ids if m_id in _TIED_MATCHES)
+    loss = matches_played - wins - ties
     win_percentage = round((wins / matches_played * 100), 1) if matches_played > 0 else 0.0
 
     total_runs = int(batting_info["runs_batter"].sum())
@@ -347,14 +379,17 @@ def get_team_analysis_api(df, team_input):
     season_perf = []
     if season_col in team_matches.columns:
         for s_year, group in team_matches.groupby(season_col):
-            s_matches = int(group["match_id"].nunique())
-            s_wins = int((group["match_won_by"] == team).sum())
-            s_losses = s_matches - s_wins
+            g_m_ids = set(group["match_id"].unique())
+            s_matches = len(g_m_ids)
+            s_wins = sum(1 for m_id in g_m_ids if _OUTRIGHT_WINNERS.get(m_id) == team)
+            s_ties = sum(1 for m_id in g_m_ids if m_id in _TIED_MATCHES)
+            s_losses = s_matches - s_wins - s_ties
             season_perf.append({
                 "season": int(s_year) if str(s_year).isdigit() else str(s_year),
                 "matches": s_matches,
                 "wins": s_wins,
-                "losses": s_losses
+                "losses": s_losses,
+                "ties": s_ties
             })
 
     return {
@@ -362,6 +397,7 @@ def get_team_analysis_api(df, team_input):
         "matches": matches_played,
         "wins": wins,
         "losses": loss,
+        "ties": ties,
         "winPercentage": win_percentage,
         "totalRuns": total_runs,
         "totalWickets": total_wickets,
