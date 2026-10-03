@@ -493,7 +493,7 @@ function updateTeamUI(data) {
     document.getElementById('team-matches').textContent = data.matches;
     document.getElementById('team-wins').textContent = data.wins;
     document.getElementById('team-losses').textContent = data.losses;
-    document.getElementById('team-ties').textContent = data.ties || 0;
+    document.getElementById('team-ties').textContent = `${data.ties || 0} / ${data.noResults || 0}`;
     document.getElementById('team-winrate').textContent = `${data.winPercentage}%`;
     document.getElementById('team-runs').textContent = (data.totalRuns || 0).toLocaleString();
     document.getElementById('team-wickets').textContent = (data.totalWickets || 0).toLocaleString();

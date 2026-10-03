@@ -26,7 +26,7 @@ for _p in ["IPL.csv.gz", "ipl.csv.gz", "IPL.csv", "ipl.csv"]:
 
 print(f"Loading IPL dataset from {DATASET_PATH}...")
 df = pd.read_csv(DATASET_PATH, low_memory=False)
-_match_map, _, _ = _compute_match_winners(df)
+_match_map, _, _, _ = _compute_match_winners(df)
 df["match_won_by"] = df["match_id"].map(_match_map).fillna(df["match_won_by"])
 df["venue_clean"] = df["venue"].map(lambda v: VENUE_MAP.get(str(v), str(v)))
 print("IPL Dataset loaded successfully!")
