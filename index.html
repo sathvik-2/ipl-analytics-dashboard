@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPL Analytics Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f6ff',
+                            100: '#e0edff',
+                            500: '#004ba0',
+                            600: '#003a80',
+                            700: '#002b60'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Modern Clean Scrollbars & Styles */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #334155;
+        }
+        
+        .tab-btn {
+            color: #64748b;
+            border-bottom: 2px solid transparent;
+        }
+        .dark .tab-btn {
+            color: #94a3b8;
+        }
+        .tab-btn:hover {
+            color: #0f172a;
+        }
+        .dark .tab-btn:hover {
+            color: #f8fafc;
+        }
+        .tab-btn.active {
+            color: #004ba0;
+            border-color: #004ba0;
+            font-weight: 600;
+        }
+        .dark .tab-btn.active {
+            color: #38bdf8;
+            border-color: #38bdf8;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen font-sans flex flex-col transition-colors duration-200 antialiased">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo & Brand Title -->
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold shadow-sm">
+                        <i data-lucide="trophy" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+                            IPL Analytics
+                        </h1>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Cricket Performance & Insights</p>
+                    </div>
+                </div>
+
+                <!-- Right Tools (Theme Toggle & Mode Indicator) -->
+                <div class="flex items-center gap-3">
+                    <div class="hidden sm:flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-medium">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Python API Connected
+                    </div>
+
+                    <!-- Light / Dark Theme Toggle Button -->
+                    <button id="theme-toggle" onclick="toggleTheme()" type="button" aria-label="Toggle theme" 
+                        class="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors">
+                        <i id="theme-toggle-dark-icon" data-lucide="moon" class="w-4 h-4 hidden"></i>
+                        <i id="theme-toggle-light-icon" data-lucide="sun" class="w-4 h-4 hidden"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full flex flex-col gap-6">
+
+        <!-- Navigation Tabs -->
+        <nav class="flex items-center gap-6 overflow-x-auto border-b border-slate-200 dark:border-slate-800 scrollbar-none">
+            <button onclick="switchTab('batter')" id="tab-batter" class="tab-btn active py-3 text-sm transition-all flex items-center gap-2 whitespace-nowrap">
+                <i data-lucide="user" class="w-4 h-4"></i> Batter Analysis
+            </button>
+            <button onclick="switchTab('bowler')" id="tab-bowler" class="tab-btn py-3 text-sm transition-all flex items-center gap-2 whitespace-nowrap">
+                <i data-lucide="zap" class="w-4 h-4"></i> Bowler Analysis
+            </button>
+            <button onclick="switchTab('team')" id="tab-team" class="tab-btn py-3 text-sm transition-all flex items-center gap-2 whitespace-nowrap">
+                <i data-lucide="shield" class="w-4 h-4"></i> Team Analysis
+            </button>
+            <button onclick="switchTab('season')" id="tab-season" class="tab-btn py-3 text-sm transition-all flex items-center gap-2 whitespace-nowrap">
+                <i data-lucide="calendar" class="w-4 h-4"></i> Season Analysis
+            </button>
+            <button onclick="switchTab('venue')" id="tab-venue" class="tab-btn py-3 text-sm transition-all flex items-center gap-2 whitespace-nowrap">
+                <i data-lucide="map-pin" class="w-4 h-4"></i> Venue Analysis
+            </button>
+            <button onclick="switchTab('comparison')" id="tab-comparison" class="tab-btn py-3 text-sm transition-all flex items-center gap-2 whitespace-nowrap">
+                <i data-lucide="arrow-left-right" class="w-4 h-4"></i> Player Comparison
+            </button>
+        </nav>
+
+        <!-- MAIN DYNAMIC SECTION -->
+        <main class="flex-1">
+
+            <!-- 1. BATTER ANALYSIS -->
+            <section id="section-batter" class="space-y-6">
+                <!-- Search Box -->
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 shadow-sm">
+                    <form onsubmit="handleBatterSearch(event)" class="flex flex-col sm:flex-row gap-3">
+                        <div class="relative flex-1">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="batter-search-input" placeholder="Enter batter name (e.g. Virat Kohli, MS Dhoni, Rohit Sharma)..." 
+                                class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md pl-9 pr-4 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-brand-500 dark:focus:border-sky-400">
+                        </div>
+                        <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white font-medium px-5 py-2 rounded-md text-sm transition-colors flex items-center justify-center gap-2">
+                            <span>Search</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Stats Grid -->
+                <div id="batter-results" class="space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 id="batter-display-name" class="text-xl font-bold text-slate-900 dark:text-slate-100">Virat Kohli</h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Batting Statistics Summary</p>
+                        </div>
+                    </div>
+
+                    <!-- Metrics Cards -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Matches</span>
+                            <p id="batter-matches" class="text-xl font-bold text-slate-900 dark:text-slate-100 mt-0.5">237</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Total Runs</span>
+                            <p id="batter-runs" class="text-xl font-bold text-brand-500 dark:text-sky-400 mt-0.5">7263</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Balls Faced</span>
+                            <p id="batter-balls" class="text-xl font-bold text-slate-900 dark:text-slate-100 mt-0.5">5586</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Strike Rate</span>
+                            <p id="batter-sr" class="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">130.02</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Average</span>
+                            <p id="batter-avg" class="text-xl font-bold text-indigo-600 dark:text-indigo-400 mt-0.5">37.25</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Highest Score</span>
+                            <p id="batter-highest" class="text-xl font-bold text-slate-900 dark:text-slate-100 mt-0.5">113</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Fours</span>
+                            <p id="batter-fours" class="text-xl font-bold text-slate-900 dark:text-slate-100 mt-0.5">643</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Sixes</span>
+                            <p id="batter-sixes" class="text-xl font-bold text-amber-600 dark:text-amber-400 mt-0.5">234</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Boundaries</span>
+                            <p id="batter-boundaries" class="text-xl font-bold text-slate-900 dark:text-slate-100 mt-0.5">877</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 col-span-2 sm:col-span-1">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">50s / 100s</span>
+                            <p id="batter-fh" class="text-xl font-bold text-brand-500 dark:text-sky-400 mt-0.5">69 / 9</p>
+                        </div>
+                    </div>
+
+                    <!-- Chart Card -->
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
+                        <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+                            <i data-lucide="bar-chart-2" class="w-4 h-4 text-brand-500 dark:text-sky-400"></i> Season-wise Runs
+                        </h3>
+                        <div class="h-64 sm:h-72 w-full">
+                            <canvas id="batter-season-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. BOWLER ANALYSIS -->
+            <section id="section-bowler" class="space-y-6 hidden">
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 shadow-sm">
+                    <form onsubmit="handleBowlerSearch(event)" class="flex flex-col sm:flex-row gap-3">
+                        <div class="relative flex-1">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="bowler-search-input" placeholder="Enter bowler name (e.g. Jasprit Bumrah, Rashid Khan, Yuzvendra Chahal)..." 
+                                class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md pl-9 pr-4 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-brand-500 dark:focus:border-sky-400">
+                        </div>
+                        <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white font-medium px-5 py-2 rounded-md text-sm transition-colors flex items-center justify-center gap-2">
+                            <span>Search</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <div id="bowler-results" class="space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 id="bowler-display-name" class="text-xl font-bold text-slate-900 dark:text-slate-100">Jasprit Bumrah</h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Bowling Statistics Summary</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Matches</span>
+                            <p id="bowler-matches" class="text-xl font-bold text-slate-900 dark:text-slate-100 mt-0.5">120</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Balls Bowled</span>
+                            <p id="bowler-balls" class="text-xl font-bold text-slate-900 dark:text-slate-100 mt-0.5">2734</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Runs Conceded</span>
+                            <p id="bowler-runs" class="text-xl font-bold text-rose-600 dark:text-rose-400 mt-0.5">3360</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Wickets</span>
+                            <p id="bowler-wickets" class="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">145</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Economy</span>
+                            <p id="bowler-economy" class="text-xl font-bold text-brand-500 dark:text-sky-400 mt-0.5">7.37</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Bowling Average</span>
+                            <p id="bowler-avg" class="text-xl font-bold text-amber-600 dark:text-amber-400 mt-0.5">23.17</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Best Figures</span>
+                            <p id="bowler-best" class="text-xl font-bold text-purple-600 dark:text-purple-400 mt-0.5">5 / 10</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">5-Wicket Hauls</span>
+                            <p id="bowler-fifers" class="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">3</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
+                        <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+                            <i data-lucide="activity" class="w-4 h-4 text-purple-500"></i> Season-wise Wickets
+                        </h3>
+                        <div class="h-64 sm:h-72 w-full">
+                            <canvas id="bowler-season-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. TEAM ANALYSIS -->
+            <section id="section-team" class="space-y-6 hidden">
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 shadow-sm space-y-3">
+                    <form onsubmit="handleTeamSearch(event)" class="flex flex-col sm:flex-row gap-3">
+                        <div class="relative flex-1">
+                            <i data-lucide="shield" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="team-search-input" placeholder="Enter team name or alias (RCB, CSK, MI, KKR, SRH)..." 
+                                class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md pl-9 pr-4 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-brand-500 dark:focus:border-sky-400">
+                        </div>
+                        <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white font-medium px-5 py-2 rounded-md text-sm transition-colors flex items-center justify-center gap-2">
+                            <span>Search</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                    <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                        <span>Quick Select:</span>
+                        <button onclick="quickSelectTeam('rcb')" class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">RCB</button>
+                        <button onclick="quickSelectTeam('csk')" class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">CSK</button>
+                        <button onclick="quickSelectTeam('mi')" class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">MI</button>
+                        <button onclick="quickSelectTeam('kkr')" class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">KKR</button>
+                        <button onclick="quickSelectTeam('srh')" class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">SRH</button>
+                    </div>
+                </div>
+
+                <div id="team-results" class="space-y-6">
+                    <div>
+                        <h2 id="team-display-name" class="text-xl font-bold text-slate-900 dark:text-slate-100">Royal Challengers Bengaluru</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Franchise History & Win Stats</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Matches</span>
+                            <p id="team-matches" class="text-xl font-bold text-slate-900 dark:text-slate-100 mt-0.5">237</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Wins</span>
+                            <p id="team-wins" class="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">114</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Losses</span>
+                            <p id="team-losses" class="text-xl font-bold text-rose-600 dark:text-rose-400 mt-0.5">119</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Win Rate</span>
+                            <p id="team-winrate" class="text-xl font-bold text-amber-600 dark:text-amber-400 mt-0.5">48.1%</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Total Runs</span>
+                            <p id="team-runs" class="text-xl font-bold text-slate-900 dark:text-slate-100 mt-0.5">37,840</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Total Wickets</span>
+                            <p id="team-wickets" class="text-xl font-bold text-slate-900 dark:text-slate-100 mt-0.5">1,420</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 col-span-2 sm:col-span-1">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Avg Runs/Match</span>
+                            <p id="team-avgruns" class="text-xl font-bold text-slate-900 dark:text-slate-100 mt-0.5">159.6</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
+                            <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+                                <i data-lucide="bar-chart-3" class="w-4 h-4 text-brand-500 dark:text-sky-400"></i> Season Performance
+                            </h3>
+                            <div class="h-64 w-full">
+                                <canvas id="team-season-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
+                            <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+                                <i data-lucide="table" class="w-4 h-4 text-slate-500"></i> Season Data Table
+                            </h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="bg-slate-100 dark:bg-slate-950 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase border-b border-slate-200 dark:border-slate-800">
+                                        <tr>
+                                            <th class="py-2 px-3">Season</th>
+                                            <th class="py-2 px-3">Played</th>
+                                            <th class="py-2 px-3 text-emerald-600 dark:text-emerald-400">Wins</th>
+                                            <th class="py-2 px-3 text-rose-600 dark:text-rose-400">Losses</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="team-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-mono">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. SEASON ANALYSIS -->
+            <section id="section-season" class="space-y-6 hidden">
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 shadow-sm">
+                    <form onsubmit="handleSeasonSearch(event)" class="flex flex-col sm:flex-row gap-3 items-center">
+                        <label for="season-select" class="text-sm font-medium text-slate-700 dark:text-slate-300">Select Year:</label>
+                        <select id="season-select" class="w-full sm:w-64 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-brand-500">
+                        </select>
+                        <button type="submit" class="w-full sm:w-auto bg-brand-500 hover:bg-brand-600 text-white font-medium px-5 py-2 rounded-md text-sm transition-colors flex items-center justify-center gap-2">
+                            <span>Analyze</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <div id="season-results" class="space-y-6">
+                    <div>
+                        <h2 id="season-display-title" class="text-xl font-bold text-slate-900 dark:text-slate-100">IPL 2023 Season</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Tournament Overview & Cap Winners</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 flex items-center gap-3">
+                            <div class="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">
+                                <i data-lucide="award" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Orange Cap</span>
+                                <p id="season-orange-cap" class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-0.5">Shubman Gill (890 Runs)</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 flex items-center gap-3">
+                            <div class="p-2.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400">
+                                <i data-lucide="zap" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Purple Cap</span>
+                                <p id="season-purple-cap" class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-0.5">Mohammed Shami (28 Wickets)</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 flex items-center gap-3">
+                            <div class="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-brand-500 dark:text-sky-400">
+                                <i data-lucide="flame" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Highest Individual Score</span>
+                                <p id="season-highest-ind" class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-0.5">Shubman Gill (129 Runs)</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Total Matches</span>
+                            <p id="season-matches" class="text-xl font-bold text-slate-900 dark:text-slate-100 mt-0.5">74</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Highest Team Score</span>
+                            <p id="season-highest-team" class="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">GT (233 / 3)</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 col-span-2 sm:col-span-1">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Lowest Team Score</span>
+                            <p id="season-lowest-team" class="text-xl font-bold text-rose-600 dark:text-rose-400 mt-0.5">DC (59 / 10)</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
+                        <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+                            <i data-lucide="trophy" class="w-4 h-4 text-amber-500"></i> Team Standings Leaderboard
+                        </h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-100 dark:bg-slate-950 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase border-b border-slate-200 dark:border-slate-800">
+                                    <tr>
+                                        <th class="py-2.5 px-4">Rank</th>
+                                        <th class="py-2.5 px-4">Team</th>
+                                        <th class="py-2.5 px-4 text-emerald-600 dark:text-emerald-400">Wins</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="season-standings-body" class="divide-y divide-slate-100 dark:divide-slate-800">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. VENUE ANALYSIS -->
+            <section id="section-venue" class="space-y-6 hidden">
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 shadow-sm">
+                    <form onsubmit="handleVenueSearch(event)" class="flex flex-col sm:flex-row gap-3">
+                        <div class="relative flex-1">
+                            <i data-lucide="map-pin" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="venue-search-input" placeholder="Enter stadium name (e.g. Chinnaswamy, Wankhede, Eden Gardens)..." 
+                                class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md pl-9 pr-4 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-brand-500 dark:focus:border-sky-400">
+                        </div>
+                        <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white font-medium px-5 py-2 rounded-md text-sm transition-colors flex items-center justify-center gap-2">
+                            <span>Search</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <div id="venue-results" class="space-y-6">
+                    <div>
+                        <h2 id="venue-display-name" class="text-xl font-bold text-slate-900 dark:text-slate-100">M. Chinnaswamy Stadium, Bengaluru</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Venue Trends & Pitch Stats</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Total Matches</span>
+                            <p id="venue-matches" class="text-xl font-bold text-slate-900 dark:text-slate-100 mt-0.5">84</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Average Score</span>
+                            <p id="venue-avg-score" class="text-xl font-bold text-brand-500 dark:text-sky-400 mt-0.5">172.5</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Highest Total</span>
+                            <p id="venue-highest" class="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">RCB (263 / 5)</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Lowest Total</span>
+                            <p id="venue-lowest" class="text-xl font-bold text-rose-600 dark:text-rose-400 mt-0.5">RCB (49 / 10)</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
+                        <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+                            <i data-lucide="pie-chart" class="w-4 h-4 text-brand-500 dark:text-sky-400"></i> Batting 1st vs Chasing Wins
+                        </h3>
+                        <div class="flex flex-col sm:flex-row items-center justify-around gap-6">
+                            <div class="h-56 w-56">
+                                <canvas id="venue-chart"></canvas>
+                            </div>
+                            <div class="space-y-3 w-full sm:w-auto">
+                                <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md p-3 flex items-center gap-3">
+                                    <span class="w-3 h-3 rounded-full bg-brand-500"></span>
+                                    <div>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400">Wins Batting First</p>
+                                        <p id="venue-bat-first" class="text-base font-bold text-slate-900 dark:text-slate-100">37 Matches</p>
+                                    </div>
+                                </div>
+                                <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md p-3 flex items-center gap-3">
+                                    <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                                    <div>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400">Wins Chasing</p>
+                                        <p id="venue-chasing" class="text-base font-bold text-slate-900 dark:text-slate-100">47 Matches</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. PLAYER COMPARISON -->
+            <section id="section-comparison" class="space-y-6 hidden">
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 shadow-sm">
+                    <form onsubmit="handleComparison(event)" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Player 1 Name:</label>
+                            <input type="text" id="comp-p1-input" placeholder="e.g. Virat Kohli..." 
+                                class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Player 2 Name:</label>
+                            <input type="text" id="comp-p2-input" placeholder="e.g. Rohit Sharma..." 
+                                class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-brand-500">
+                        </div>
+                        <div class="md:col-span-2 flex justify-end">
+                            <button type="submit" class="w-full md:w-auto bg-brand-500 hover:bg-brand-600 text-white font-medium px-6 py-2 rounded-md text-sm transition-colors flex items-center justify-center gap-2">
+                                <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
+                                <span>Compare</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="comparison-results" class="space-y-6">
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
+                        <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4 pb-2 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                            <i data-lucide="swords" class="w-4 h-4 text-amber-500"></i> Batting Statistics Comparison
+                        </h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-100 dark:bg-slate-950 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase border-b border-slate-200 dark:border-slate-800">
+                                    <tr>
+                                        <th class="py-2.5 px-4">Metric</th>
+                                        <th id="comp-head-p1" class="py-2.5 px-4 text-brand-500 dark:text-sky-400 font-bold">Player 1 (Virat Kohli)</th>
+                                        <th id="comp-head-p2" class="py-2.5 px-4 text-emerald-600 dark:text-emerald-400 font-bold">Player 2 (Rohit Sharma)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 font-mono text-xs">
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-sans text-slate-600 dark:text-slate-400">Total Runs</td>
+                                        <td id="comp-bat-runs-1" class="py-2.5 px-4 font-bold text-slate-900 dark:text-slate-100">7263</td>
+                                        <td id="comp-bat-runs-2" class="py-2.5 px-4 font-bold text-slate-900 dark:text-slate-100">6211</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-sans text-slate-600 dark:text-slate-400">Balls Faced</td>
+                                        <td id="comp-bat-balls-1" class="py-2.5 px-4">5586</td>
+                                        <td id="comp-bat-balls-2" class="py-2.5 px-4">4763</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-sans text-slate-600 dark:text-slate-400">Strike Rate</td>
+                                        <td id="comp-bat-sr-1" class="py-2.5 px-4 font-bold text-emerald-600 dark:text-emerald-400">130.02</td>
+                                        <td id="comp-bat-sr-2" class="py-2.5 px-4 font-bold text-emerald-600 dark:text-emerald-400">130.40</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-sans text-slate-600 dark:text-slate-400">Batting Average</td>
+                                        <td id="comp-bat-avg-1" class="py-2.5 px-4 font-bold text-brand-500 dark:text-sky-400">37.25</td>
+                                        <td id="comp-bat-avg-2" class="py-2.5 px-4 font-bold text-brand-500 dark:text-sky-400">29.58</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-sans text-slate-600 dark:text-slate-400">Fours / Sixes</td>
+                                        <td id="comp-bat-boundaries-1" class="py-2.5 px-4">643 / 234</td>
+                                        <td id="comp-bat-boundaries-2" class="py-2.5 px-4">554 / 257</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-sans text-slate-600 dark:text-slate-400">50s / 100s</td>
+                                        <td id="comp-bat-fh-1" class="py-2.5 px-4 font-bold text-brand-500 dark:text-sky-400">69 / 9</td>
+                                        <td id="comp-bat-fh-2" class="py-2.5 px-4 font-bold text-brand-500 dark:text-sky-400">42 / 2</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5">
+                        <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4 pb-2 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                            <i data-lucide="zap" class="w-4 h-4 text-purple-500"></i> Bowling Statistics Comparison
+                        </h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-100 dark:bg-slate-950 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase border-b border-slate-200 dark:border-slate-800">
+                                    <tr>
+                                        <th class="py-2.5 px-4">Metric</th>
+                                        <th id="comp-bow-head-p1" class="py-2.5 px-4 text-brand-500 dark:text-sky-400 font-bold">Player 1 (Virat Kohli)</th>
+                                        <th id="comp-bow-head-p2" class="py-2.5 px-4 text-emerald-600 dark:text-emerald-400 font-bold">Player 2 (Rohit Sharma)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 font-mono text-xs">
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-sans text-slate-600 dark:text-slate-400">Balls Bowled</td>
+                                        <td id="comp-bow-balls-1" class="py-2.5 px-4">251</td>
+                                        <td id="comp-bow-balls-2" class="py-2.5 px-4">383</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-sans text-slate-600 dark:text-slate-400">Runs Conceded</td>
+                                        <td id="comp-bow-runs-1" class="py-2.5 px-4">368</td>
+                                        <td id="comp-bow-runs-2" class="py-2.5 px-4">515</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-sans text-slate-600 dark:text-slate-400">Wickets Taken</td>
+                                        <td id="comp-bow-wickets-1" class="py-2.5 px-4 font-bold text-emerald-600 dark:text-emerald-400">4</td>
+                                        <td id="comp-bow-wickets-2" class="py-2.5 px-4 font-bold text-emerald-600 dark:text-emerald-400">15</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-sans text-slate-600 dark:text-slate-400">Economy Rate</td>
+                                        <td id="comp-bow-eco-1" class="py-2.5 px-4 font-bold text-amber-600 dark:text-amber-400">8.80</td>
+                                        <td id="comp-bow-eco-2" class="py-2.5 px-4 font-bold text-amber-600 dark:text-amber-400">8.07</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-sans text-slate-600 dark:text-slate-400">Bowling Average</td>
+                                        <td id="comp-bow-avg-1" class="py-2.5 px-4 font-bold text-brand-500 dark:text-sky-400">92.00</td>
+                                        <td id="comp-bow-avg-2" class="py-2.5 px-4 font-bold text-brand-500 dark:text-sky-400">34.33</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-sans text-slate-600 dark:text-slate-400">5-Wicket Hauls</td>
+                                        <td id="comp-bow-fifers-1" class="py-2.5 px-4 font-bold text-emerald-600 dark:text-emerald-400">0</td>
+                                        <td id="comp-bow-fifers-2" class="py-2.5 px-4 font-bold text-emerald-600 dark:text-emerald-400">0</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-4 mt-auto text-center text-xs text-slate-500">
+        IPL Analytics Dashboard &bull; Clean Modern UI &bull; Toggle Theme Enabled
+    </footer>
+
+    <!-- App Logic Script -->
+    <script src="app.js"></script>
+</body>
+</html>
