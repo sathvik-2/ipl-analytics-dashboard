@@ -17,19 +17,35 @@ from analytics import (
 app = Flask(__name__, static_folder=".")
 
 # Load dataset once when server starts
-DATASET_PATH = None
-for _p in ["IPL.csv.gz", "ipl.csv.gz", "IPL.csv", "ipl.csv"]:
-    _full = os.path.join(os.path.dirname(__file__), _p)
-    if os.path.exists(_full):
-        DATASET_PATH = _full
-        break
+df = None
+try:
+    from pymongo import MongoClient
+    _mongo_client = MongoClient("mongodb://localhost:27017/", serverSelectionTimeoutMS=2000)
+    _mongo_db = _mongo_client["ipl_analytics"]
+    _mongo_coll = _mongo_db["deliveries"]
+    if _mongo_coll.count_documents({}) > 0:
+        print("Loading IPL dataset from MongoDB (database: ipl_analytics, collection: deliveries)...")
+        _records = list(_mongo_coll.find({}, {"_id": 0}))
+        df = pd.DataFrame(_records)
+        print(f"IPL Dataset loaded successfully from MongoDB ({len(df)} records)!")
+except Exception as _e:
+    pass
 
-print(f"Loading IPL dataset from {DATASET_PATH}...")
-df = pd.read_csv(DATASET_PATH, low_memory=False)
+if df is None:
+    DATASET_PATH = None
+    for _p in ["IPL.csv.gz", "ipl.csv.gz", "IPL.csv", "ipl.csv"]:
+        _full = os.path.join(os.path.dirname(__file__), _p)
+        if os.path.exists(_full):
+            DATASET_PATH = _full
+            break
+
+    print(f"Loading IPL dataset from {DATASET_PATH}...")
+    df = pd.read_csv(DATASET_PATH, low_memory=False)
+    print("IPL Dataset loaded successfully!")
+
 _match_map, _, _, _ = _compute_match_winners(df)
 df["match_won_by"] = df["match_id"].map(_match_map).fillna(df["match_won_by"])
 df["venue_clean"] = df["venue"].map(lambda v: VENUE_MAP.get(str(v), str(v)))
-print("IPL Dataset loaded successfully!")
 
 
 # Serve Static Frontend Files

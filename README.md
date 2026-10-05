@@ -81,9 +81,10 @@ ipl-analytics-dashboard/
 │
 ├── analytics.py        # Backend data processing & API calculation logic
 ├── server.py           # Flask REST API server & static file host
+├── import_to_mongo.py  # One-time MongoDB data import & index creation script
 ├── index.html          # Responsive single-page dashboard UI (Tailwind CSS)
 ├── app.js              # Frontend API client, Chart.js & state management
-├── IPL.csv             # Complete ball-by-ball IPL dataset (2008–2026)
+├── IPL.csv.gz          # Compressed ball-by-ball IPL dataset (2008–2026)
 ├── requirements.txt    # Python package dependencies
 ├── .gitignore          # Git ignore rules
 └── README.md           # Project documentation

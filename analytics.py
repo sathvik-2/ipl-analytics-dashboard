@@ -3,16 +3,33 @@ import numpy as np
 import pandas as pd
 from rapidfuzz import process
 
-DATASET_PATH = None
-for _p in ["IPL.csv.gz", "ipl.csv.gz", "IPL.csv", "ipl.csv"]:
-    if os.path.exists(_p):
-        DATASET_PATH = _p
-        break
+df = None
+try:
+    from pymongo import MongoClient
+    _mongo_client = MongoClient("mongodb://localhost:27017/", serverSelectionTimeoutMS=2000)
+    _mongo_db = _mongo_client["ipl_analytics"]
+    _mongo_coll = _mongo_db["deliveries"]
+    if _mongo_coll.count_documents({}) > 0:
+        print("Loading IPL dataset from MongoDB (database: ipl_analytics, collection: deliveries)...")
+        _records = list(_mongo_coll.find({}, {"_id": 0}))
+        df = pd.DataFrame(_records)
+        print(f"IPL Dataset loaded successfully from MongoDB ({len(df)} records)!")
+except Exception as _e:
+    pass
 
-if not DATASET_PATH:
-    raise FileNotFoundError("IPL dataset file (IPL.csv.gz or IPL.csv) not found!")
+if df is None:
+    DATASET_PATH = None
+    for _p in ["IPL.csv.gz", "ipl.csv.gz", "IPL.csv", "ipl.csv"]:
+        if os.path.exists(_p):
+            DATASET_PATH = _p
+            break
 
-df = pd.read_csv(DATASET_PATH, low_memory=False)
+    if not DATASET_PATH:
+        raise FileNotFoundError("IPL dataset file (IPL.csv.gz or IPL.csv) not found!")
+
+    print(f"Loading IPL dataset from {DATASET_PATH}...")
+    df = pd.read_csv(DATASET_PATH, low_memory=False)
+    print("IPL Dataset loaded successfully!")
 
 def _compute_match_winners(data_frame):
     match_winners = {}
